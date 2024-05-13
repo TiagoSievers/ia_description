@@ -1,14 +1,28 @@
 from typing import Optional
 
-from fastapi import FastAPI
+import google.generativeai as genai
+from fastapi import FastAPI, UploadFile, File
+
+import uvicorn
+
+from PIL import Image
+from io import BytesIO
+
+genai.configure(api_key="AIzaSyA0gMN7n2qkJqU6Owoxx55rZJkWNiiOQbA")
 
 app = FastAPI()
 
+model = genai.GenerativeModel("gemini-pro-vision")
 
 @app.get("/")
-async def root():
-    return {"message": "Hello World"}
+def read_root():
+    return {"Hello": "World"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Optional[str] = None):
-    return {"item_id": item_id, "q": q}
+@app.post("/generate_response")
+async def generate_response(image: UploadFile = File(...)):
+
+    image_contents = await image.read()
+    image_pil = Image.open(BytesIO(image_contents))
+    input_text = 'Crie uma descrição de anúncio em pt-BR irresistível para o produto na imagem, focando em: Que problema ele resolve? Quais são seus 3 principais benefícios? Quais características o tornam único? Inclua detalhes específicos sobre materiais, dimensões, cores, etc. Termine com uma chamada para ação persuasiva.'
+    response = model.generate_content((input_text, image_pil))
+    return response.text
